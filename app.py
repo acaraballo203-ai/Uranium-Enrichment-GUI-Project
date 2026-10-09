@@ -23,9 +23,10 @@ INPUT_FIELDS = [
     ("Product assay (% U-235)", "4.95"),
     ("Feed assay (% U-235)", "0.711"),
     ("Tails assay (% U-235)", "0.25"),
-    ("Feed cost ($/kgU)", "0"),
+    ("Energy to run 1 kg SWU of enrichment process (kWh)", "0"),
+    ("Feed cost ($/kgU [U_3O_8])", "0"),
     ("SWU cost ($/SWU)", "0"),
-    ("Conversion cost ($/kgU)", "0"),
+    ("Conversion cost ($/kgU [UF_6])", "0"),
 ]
 
 # Each output row: (label text, key in the results dictionary, unit/format).
@@ -33,6 +34,7 @@ OUTPUT_FIELDS = [
     ("Feed uranium needed", "feed_mass", "kgU"),
     ("Tails (depleted U)", "tails_mass", "kgU"),
     ("Separative work", "swu", "SWU"),
+    ("Energy of Separative work Required", "energy_required", "kWh"),
     ("Feed cost", "feed_cost", "$"),
     ("Conversion cost", "conversion_cost", "$"),
     ("Enrichment (SWU) cost", "enrichment_cost", "$"),
@@ -106,9 +108,10 @@ class EnrichmentApp:
                 product_assay=self.read_number("Product assay (% U-235)"),
                 feed_assay=self.read_number("Feed assay (% U-235)"),
                 tails_assay=self.read_number("Tails assay (% U-235)"),
-                feed_cost_per_kg=self.read_number("Feed cost ($/kgU)"),
+                energy_required=self.read_number("Energy to run 1 kg SWU of enrichment process (kWh)"),
+                feed_cost_per_kg=self.read_number("Feed cost ($/kgU [U_3O_8])"),
                 swu_cost=self.read_number("SWU cost ($/SWU)"),
-                conversion_cost_per_kg=self.read_number("Conversion cost ($/kgU)"),
+                conversion_cost_per_kg=self.read_number("Conversion cost ($/kgU [UF_6])"),
             )
         except ValueError as error:
             # Show the problem in a pop-up instead of crashing.

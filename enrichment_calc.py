@@ -73,13 +73,13 @@ def swu_needed(product_mass, product_assay, feed_assay, tails_assay):
             - feed * value_function(feed_assay))
 
 
-def calculate_all(product_mass, product_assay, feed_assay, tails_assay,
+def calculate_all(product_mass, product_assay, feed_assay, tails_assay, energy_required,
                   feed_cost_per_kg, swu_cost, conversion_cost_per_kg):
     """
     Run every calculation at once and return the results in a dictionary.
 
     Costs are whatever the user types in (not market prices):
-      feed_cost_per_kg        - $ per kg of natural uranium feed
+      feed_cost_per_kg        - $ per kg of natural uranium (U3O8) feed
       swu_cost                - $ per SWU
       conversion_cost_per_kg  - $ per kg of feed converted (to UF6)
     """
@@ -89,9 +89,13 @@ def calculate_all(product_mass, product_assay, feed_assay, tails_assay,
         if cost < 0:
             raise ValueError("Costs cannot be negative.")
 
+    if energy_required < 0:
+        raise ValueError("Energy of enrichment process cannot be negative.")
+
     feed = feed_needed(product_mass, product_assay, feed_assay, tails_assay)
     swu = swu_needed(product_mass, product_assay, feed_assay, tails_assay)
 
+    energy_enrichment = swu * energy_required
     feed_cost = feed * feed_cost_per_kg
     conversion_cost = feed * conversion_cost_per_kg
     enrichment_cost = swu * swu_cost
@@ -100,6 +104,7 @@ def calculate_all(product_mass, product_assay, feed_assay, tails_assay,
         "feed_mass": feed,
         "tails_mass": feed - product_mass,
         "swu": swu,
+        "energy_required": energy_enrichment,
         "feed_cost": feed_cost,
         "conversion_cost": conversion_cost,
         "enrichment_cost": enrichment_cost,

@@ -35,7 +35,7 @@ class TestEnrichmentCalc(unittest.TestCase):
         self.assertAlmostEqual(ten_kg, 10 * one_kg)
 
     def test_total_cost(self):
-        results = calc.calculate_all(1, 4.5, 0.711, 0.3,
+        results = calc.calculate_all(1, 4.5, 0.711, 0.3, 50,
                                      feed_cost_per_kg=100,
                                      swu_cost=150,
                                      conversion_cost_per_kg=10)
