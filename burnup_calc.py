@@ -67,17 +67,6 @@ def fuel_life_days(max_burnup_gwd_per_t, specific_power):
     How many full-power days the fuel can run before it reaches
     its maximum (discharge) burnup.
 
-    YOUR TURN!  Right now this returns None, and the app shows
-    "(not built yet)" in the Fuel life box.
-
-    Hints:
-      * burnup_mwd_per_t() above says:  burnup = specific_power * days
-      * flip that around to solve for days
-      * careful with units: max_burnup is in GWd/t, but
-        specific_power * days gives MWd/t  (1 GWd = 1000 MWd)
-      * if specific_power is 0, you would divide by zero, so raise a
-        ValueError with a friendly message (see calculate_all below)
-
     Check your answer: PWR preset (50 GWd/t, 38 kW/kg) should give
     about 1,316 days, which is roughly 3.6 years.
     """
@@ -97,23 +86,55 @@ def fuel_life_years(full_power_days, capacity_factor_percent):
     maintenance), so the fuel takes longer on the calendar than
     the full-power days suggest.
 
-    YOUR TURN!  Right now this returns None, and the app shows
-    "(not built yet)" in the Fuel life (calendar) box.
-
-    Hints:
-      * capacity factor is a percent, so turn 90 into 0.90 first
-      * calendar days = full-power days / capacity factor
-        (at 90 %, 900 full-power days take 1,000 calendar days)
-      * a year is 365.25 days on average (leap years!)
-      * if full_power_days is None (fuel_life_days not built yet),
-        just return None
-      * if the capacity factor is 0, you would divide by zero, so
-        raise a ValueError with a friendly message
 
     Check your answer: 1,315.79 full-power days at 90 % should give
     about 4.00 years.
     """
-    return None
+
+    if capacity_factor_percent <= 0:
+        raise ValueError("Capacity factor must be greater than 0.")
+
+    capacity_factor_percentage = capacity_factor_percent / 100.0
+
+    calendar_years = (full_power_days) / (capacity_factor_percentage * 365.25) 
+
+    return calendar_years
+
+
+def calendar_days(full_power_days, capacity_factor_percent):
+    """
+    How many real calendar days it takes to run a number of
+    full-power days (same idea as fuel_life_years, but in days).
+
+    Example: 365 full-power days at 90 % takes 365 / 0.90 = 405.6 days.
+    """
+    if capacity_factor_percent <= 0:
+        raise ValueError("Capacity factor must be greater than 0.")
+    return full_power_days / (capacity_factor_percent / 100.0)
+
+
+def max_electricity_mwh(electric_power_mw, calendar_days):
+    """
+    The MOST electricity the fuel could have made if the plant ran at
+    full power on every single calendar day (no outages at all).
+    The pie chart compares this with the electricity really made.
+
+    YOUR TURN!  Right now this returns None, and the pie chart shows
+    "(not built yet)".
+
+    Hints:
+      * energy = power * time
+      * electric_power_mw is in MW, calendar_days is in days,
+        and we want the answer in MWh
+      * how many hours are in one day?
+
+    Check your answer: 12.54 MWe for 405.56 calendar days should give
+    about 122,057 MWh.
+    """
+
+    max_elec_generated = electric_power_mw * calendar_days * 24
+
+    return max_elec_generated
 
 
 def calculate_all(fuel_mass_kg, specific_power, efficiency_percent, days,
@@ -167,6 +188,14 @@ def calculate_all(fuel_mass_kg, specific_power, efficiency_percent, days,
         "electric_energy": electric_energy_mwh,
         "fuel_life": life_days,
         "fuel_life_years": fuel_life_years(life_days, capacity_factor_percent),
-        # True if the user ran the fuel shorter than it is meant to last
+        # Calendar days needed for the operating days the user typed in
+        # (used by the pie chart)
+        "calendar_days": calendar_days(days, capacity_factor_percent),
+        # Electricity it could have made running every calendar day
+        # (used by the "made vs possible" pie chart)
+        "max_electricity": max_electricity_mwh(
+            thermal_power_mw * efficiency,
+            calendar_days(days, capacity_factor_percent)),
+        # True if the user ran the fuel longer than it is meant to last
         "over_max_burnup": burnup_gwd > max_burnup_gwd_per_t,
     }

@@ -48,9 +48,18 @@ class TestBurnupCalc(unittest.TestCase):
         self.assertAlmostEqual(days, 1315.79, places=2)
 
     # Un-comment this test once you write fuel_life_years()!
-    # def test_fuel_life_years(self):
-    #     years = burn.fuel_life_years(1315.79, 90)
-    #     self.assertAlmostEqual(years, 4.00, places=2)
+    def test_fuel_life_years(self):
+        years = burn.fuel_life_years(1315.79, 90)
+        self.assertAlmostEqual(years, 4.00, places=2)
+
+    def test_calendar_days(self):
+        # 365 full-power days at 90 % takes 365 / 0.9 = 405.56 calendar days
+        self.assertAlmostEqual(burn.calendar_days(365, 90), 405.56, places=2)
+
+    # Un-comment this test once you write max_electricity_mwh()!
+    def test_max_electricity(self):
+       mwh = burn.max_electricity_mwh(12.54, 405.56)
+       self.assertAlmostEqual(mwh, 122057.3, places=1)
 
 
 if __name__ == "__main__":

@@ -17,9 +17,24 @@ that enriched uranium makes in a reactor, using **burnup**:
 - thermal and electric power, burnup reached, thermal and electric energy
 - fuel life at max burnup, in full-power days and calendar years
 
+Both sections also draw graphs (made with Matplotlib, embedded in the window):
+
+- section 1: a bar graph of the energy needed to enrich the uranium
+- section 2: a bar graph of enrichment energy (in) vs electricity and heat
+  made (out), a pie of full-power days vs outage days, and a pie of how the
+  reactor's heat splits into electricity and waste heat
+
 Costs are whatever you type in; the app does not look up market prices.
 
 ## Run it
+
+Install Matplotlib once (Tkinter comes with Python, Matplotlib does not):
+
+```
+py -m pip install -r requirements.txt
+```
+
+Then start the app:
 
 ```
 py app.py
@@ -40,6 +55,8 @@ py -m unittest
 | `test_enrichment_calc.py` | Simple checks that the math is right |
 | `burnup_calc.py` | The energy / burnup math and reactor presets |
 | `test_burnup_calc.py` | Simple checks for the burnup math |
+| `graphs.py` | Draws the graphs with Matplotlib |
+| `requirements.txt` | Extra library to install (Matplotlib) |
 
 ## The formulas
 
@@ -61,6 +78,7 @@ Fuel mass M is the product mass from section 1 (kgU = kgHM for uranium fuel).
 - Electric energy: `E_e = E_th * efficiency`
 - Fuel life: `days = max burnup (GWd/t) * 1000 / specific power`
 - Fuel life in years: `years = days / capacity factor / 365.25`
+- Calendar days (pie chart): `calendar days = full-power days / capacity factor`
 
 Preset values are typical ballpark numbers, not data for one specific plant.
 

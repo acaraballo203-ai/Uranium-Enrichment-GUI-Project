@@ -8,7 +8,7 @@ Run it with:
 
 This file only builds the window and reads/writes the boxes.
 All of the actual math is in enrichment_calc.py (section 1)
-and burnup_calc.py (section 2).
+and burnup_calc.py (section 2). The graphs are drawn by graphs.py.
 """
 
 import tkinter as tk
@@ -16,6 +16,7 @@ from tkinter import ttk, messagebox
 
 import enrichment_calc as calc
 import burnup_calc as burn
+import graphs
 
 
 # Each input row: (label text, default value).
@@ -25,10 +26,10 @@ INPUT_FIELDS = [
     ("Product assay (% U-235)", "4.95"),
     ("Feed assay (% U-235)", "0.711"),
     ("Tails assay (% U-235)", "0.25"),
-    ("Energy to run 1 kg SWU of enrichment process (kWh)", "0"),
-    ("Feed cost ($/kgU [U_3O_8])", "0"),
-    ("SWU cost ($/SWU)", "0"),
-    ("Conversion cost ($/kgU [UF_6])", "0"),
+    ("Energy to run 1 kg SWU of enrichment process (kWh)", "50"),
+    ("Feed cost ($/kgU [U_3O_8])", "50"),
+    ("SWU cost ($/SWU)", "130"),
+    ("Conversion cost ($/kgU [UF_6])", "20"),
 ]
 
 # Each output row: (label text, key in the results dictionary, unit/format).
@@ -118,6 +119,17 @@ class EnrichmentApp:
                 row=row, column=1, pady=3, padx=(10, 0))
             self.result_vars[key] = var
 
+        # ---------- Graph 1: enrichment energy ----------
+        # A third box to the right of the results holds the graph.
+        graph_box = ttk.LabelFrame(main, text="Graph", padding=5)
+        graph_box.grid(row=0, column=2, sticky="nsew", padx=(10, 0))
+        # make_canvas gives us a Matplotlib figure that lives in graph_box
+        self.enrich_figure, self.enrich_canvas = graphs.make_canvas(
+            graph_box, width_inches=3.2, height_inches=2.0)
+        self.enrich_canvas.get_tk_widget().grid(row=0, column=0)
+        graphs.show_message(self.enrich_figure, self.enrich_canvas,
+                            "Press Calculate to see the graph.")
+
         # ---------- Section 2: Energy from fuel (burnup) ----------
         self.build_burnup_section(main)
 
@@ -126,10 +138,10 @@ class EnrichmentApp:
         Build the second section underneath the first one.
         It has its own Calculate button, so it never changes section 1.
         """
-        # row=1 puts it under section 1; columnspan=2 makes it full width.
+        # row=1 puts it under section 1; columnspan=3 makes it full width.
         burnup_box = ttk.LabelFrame(
             main, text="Energy from this fuel (burnup)", padding=10)
-        burnup_box.grid(row=1, column=0, columnspan=2,
+        burnup_box.grid(row=1, column=0, columnspan=3,
                         sticky="nsew", pady=(15, 0))
 
         # Left side: inputs.  Right side: results.
@@ -193,6 +205,16 @@ class EnrichmentApp:
             row=len(BURNUP_OUTPUT_FIELDS), column=0, columnspan=2,
             sticky="w", pady=(6, 0))
 
+        # --- Graphs 2 and 3 ---
+        # One wide figure under the inputs and results (row=1),
+        # holding the bar graph and the two pie charts side by side.
+        self.burnup_figure, self.burnup_canvas = graphs.make_canvas(
+            burnup_box, width_inches=12.5, height_inches=1.9)
+        self.burnup_canvas.get_tk_widget().grid(
+            row=1, column=0, columnspan=2, pady=(10, 0))
+        graphs.show_message(self.burnup_figure, self.burnup_canvas,
+                            "Press Calculate energy to see the graphs.")
+
         # Start with the PWR preset picked and its numbers filled in.
         self.reactor_choice.current(0)
         self.apply_preset()
@@ -226,6 +248,9 @@ class EnrichmentApp:
     def calculate_burnup(self):
         """Called when the section 2 Calculate energy button is pressed."""
         try:
+            # The bar graph compares against section 1's enrichment energy,
+            # so we run section 1's math too (same boxes, same numbers).
+            enrich_results = self.run_enrichment_math()
             results = burn.calculate_all(
                 # Fuel mass comes straight from section 1's Product mass box.
                 fuel_mass_kg=self.read_number("Product mass (kgU)"),
@@ -254,11 +279,24 @@ class EnrichmentApp:
         else:
             self.burnup_warning.set("")
 
+        # ---- update the graphs ----
+        graphs.draw_burnup_graphs(
+            self.burnup_figure, self.burnup_canvas,
+            enrichment_mwh=enrich_results["energy_required"] / 1000,  # kWh -> MWh
+            electric_mwh=results["electric_energy"],
+            thermal_mwh=results["thermal_energy"],
+            full_power_days=self.read_burnup_number("Full-power operating days"),
+            calendar_days=results["calendar_days"],
+            max_electric_mwh=results["max_electricity"],
+        )
+
     def clear_burnup(self):
         """Reset every section 2 result back to a dash."""
         for var in self.burnup_vars.values():
             var.set("-")
         self.burnup_warning.set("")
+        graphs.show_message(self.burnup_figure, self.burnup_canvas,
+                            "Press Calculate energy to see the graphs.")
 
     def read_number(self, label_text):
         """Read one input box and turn its text into a number."""
@@ -268,19 +306,26 @@ class EnrichmentApp:
         except ValueError:
             raise ValueError('"' + label_text + '" must be a number.')
 
+    def run_enrichment_math(self):
+        """
+        Read the section 1 boxes and run the enrichment math.
+        Used by both Calculate buttons. Raises ValueError on a bad input.
+        """
+        return calc.calculate_all(
+            product_mass=self.read_number("Product mass (kgU)"),
+            product_assay=self.read_number("Product assay (% U-235)"),
+            feed_assay=self.read_number("Feed assay (% U-235)"),
+            tails_assay=self.read_number("Tails assay (% U-235)"),
+            energy_required=self.read_number("Energy to run 1 kg SWU of enrichment process (kWh)"),
+            feed_cost_per_kg=self.read_number("Feed cost ($/kgU [U_3O_8])"),
+            swu_cost=self.read_number("SWU cost ($/SWU)"),
+            conversion_cost_per_kg=self.read_number("Conversion cost ($/kgU [UF_6])"),
+        )
+
     def calculate(self):
         """Called when the Calculate button is pressed."""
         try:
-            results = calc.calculate_all(
-                product_mass=self.read_number("Product mass (kgU)"),
-                product_assay=self.read_number("Product assay (% U-235)"),
-                feed_assay=self.read_number("Feed assay (% U-235)"),
-                tails_assay=self.read_number("Tails assay (% U-235)"),
-                energy_required=self.read_number("Energy to run 1 kg SWU of enrichment process (kWh)"),
-                feed_cost_per_kg=self.read_number("Feed cost ($/kgU [U_3O_8])"),
-                swu_cost=self.read_number("SWU cost ($/SWU)"),
-                conversion_cost_per_kg=self.read_number("Conversion cost ($/kgU [UF_6])"),
-            )
+            results = self.run_enrichment_math()
         except ValueError as error:
             # Show the problem in a pop-up instead of crashing.
             messagebox.showerror("Check your inputs", str(error))
@@ -294,10 +339,16 @@ class EnrichmentApp:
             else:
                 self.result_vars[key].set("{:,.2f} {}".format(value, unit))
 
+        # Redraw graph 1.  The math gives kWh; the graph uses MWh.
+        graphs.draw_enrichment_energy(self.enrich_figure, self.enrich_canvas,
+                                      results["energy_required"] / 1000)
+
     def clear(self):
         """Reset every result back to a dash."""
         for var in self.result_vars.values():
             var.set("-")
+        graphs.show_message(self.enrich_figure, self.enrich_canvas,
+                            "Press Calculate to see the graph.")
 
 
 # This block only runs when you start this file directly (py app.py).
